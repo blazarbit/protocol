@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct InstantiateMsg {
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Transfer {
@@ -32,11 +32,16 @@ pub enum ExecuteMsg {
         contract_addr: String,
         commands: Vec<ExecuteMsg>,
     },
-    Increment { channel: String },
+    IbcContractHop {
+        channel: String,
+        commands: Vec<ExecuteMsg>
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum IbcExecuteMsg {
-    Increment {},
+    IbcContractHop {
+        commands: Vec<ExecuteMsg>
+    },
 }

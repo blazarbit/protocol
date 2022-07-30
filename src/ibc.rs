@@ -1,10 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    from_binary, DepsMut, Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg,
-    IbcChannelConnectMsg, IbcChannelOpenMsg, IbcOrder, IbcPacketAckMsg, IbcPacketReceiveMsg,
-    IbcPacketTimeoutMsg, IbcReceiveResponse, StdResult,
-};
+use cosmwasm_std::{from_binary, DepsMut, Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcOrder, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse, StdResult, WasmMsg, to_binary};
 
 use crate::{
     ack::{make_ack_fail, make_ack_success},
@@ -13,6 +9,7 @@ use crate::{
     state::CONNECTION_COUNTS,
     ContractError,
 };
+use crate::msg::ExecuteMsg;
 
 pub const IBC_VERSION: &str = "blazarbit-1";
 
@@ -49,12 +46,13 @@ pub fn ibc_channel_close(
     _env: Env,
     msg: IbcChannelCloseMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
-    let channel = msg.channel().endpoint.channel_id.clone();
+    // let channel = msg.channel().endpoint.channel_id.clone();
     // Reset the state for the channel.
-    CONNECTION_COUNTS.remove(deps.storage, channel.clone());
+    // CONNECTION_COUNTS.remove(deps.storage, channel.clone());
     Ok(IbcBasicResponse::new()
         .add_attribute("method", "ibc_channel_close")
-        .add_attribute("channel", channel))
+        // .add_attribute("channel", channel)
+    )
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -77,28 +75,30 @@ pub fn ibc_packet_receive(
 
 pub fn do_ibc_packet_receive(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     msg: IbcPacketReceiveMsg,
 ) -> Result<IbcReceiveResponse, ContractError> {
     // The channel this packet is being relayed along on this chain.
-    let channel = msg.packet.dest.channel_id;
     let msg: IbcExecuteMsg = from_binary(&msg.packet.data)?;
-
     match msg {
-        IbcExecuteMsg::Increment {} => execute_increment(deps, channel),
+        IbcExecuteMsg::IbcContractHop { commands } => execute_ibc_contract_hop(deps, env.contract.address.into(), commands),
     }
 }
 
-pub fn execute_increment(
+pub fn execute_ibc_contract_hop(
     deps: DepsMut,
-    channel: String,
+    self_address: String,
+    commands: Vec<ExecuteMsg>,
 ) -> Result<IbcReceiveResponse, ContractError> {
-    let count = CONNECTION_COUNTS.update(deps.storage, channel, |count| -> StdResult<_> {
-        Ok(count.unwrap_or_default() + 1)
-    })?;
+    let msg = WasmMsg::Execute {
+        contract_addr: self_address.clone(),
+        msg: to_binary(&ExecuteMsg::ContractHop { contract_addr: self_address.clone(), commands }).unwrap(),
+        funds: deps.querier.query_all_balances(self_address.clone())?,
+    };
     Ok(IbcReceiveResponse::new()
         .add_attribute("method", "execute_increment")
-        .add_attribute("count", count.to_string())
+        // .add_attribute("count", count.to_string())
+        .add_message(msg)
         .set_ack(make_ack_success()))
 }
 

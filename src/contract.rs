@@ -48,15 +48,19 @@ pub fn execute(
         ExecuteMsg::Swap { pool_id, token_out_denom, token_out_min_amount } => execute_swap(_env.contract.address.into(), info, pool_id, token_out_denom, token_out_min_amount),
         ExecuteMsg::PurchaseNFT { owner, contract_addr, token_id, token_uri } => purchaseNft(deps, _env, info, contract_addr, token_id, token_uri, owner),
         ExecuteMsg::ContractHop { contract_addr, commands } => contract_hop(deps, info, contract_addr, commands),
-        ExecuteMsg::Increment { channel } => Ok(Response::new()
-            .add_attribute("method", "execute_increment")
-            .add_attribute("channel", channel.clone())
-            .add_message(IbcMsg::SendPacket {
-                channel_id: channel,
-                data: to_binary(&IbcExecuteMsg::Increment {})?,
-                timeout: IbcTimeout::with_timestamp(_env.block.time.plus_seconds(300)),
-            })),
+        ExecuteMsg::IbcContractHop { channel, commands } => execute_ibc_contract_hop(_env, channel, commands),
     }
+}
+
+fn execute_ibc_contract_hop(env: Env, channel: String, commands: Vec<ExecuteMsg>) -> Result<Response, ContractError> {
+    Ok(Response::new()
+        .add_attribute("method", "execute_ibc_contract_hop")
+        .add_attribute("channel", channel.clone())
+        .add_message(IbcMsg::SendPacket {
+            channel_id: channel,
+            data: to_binary(&IbcExecuteMsg::IbcContractHop { commands })?,
+            timeout: IbcTimeout::with_timestamp(env.block.time.plus_seconds(300)),
+        }))
 }
 
 pub fn execute_transfer(deps: DepsMut, info: MessageInfo, addr: String) -> Result<Response, ContractError> {
@@ -224,10 +228,10 @@ fn contract_hop(deps: DepsMut, info: MessageInfo, contract_addr: String, mut com
                 };
                 SubMsg::reply_on_success(msg, 1)
             }
-            ExecuteMsg::Increment { channel } => {
+            ExecuteMsg::IbcContractHop { channel, commands } => {
                 let msg = WasmMsg::Execute {
                     contract_addr: contract_addr.clone(),
-                    msg: to_binary(&ExecuteMsg::Increment { channel }).unwrap(),
+                    msg: to_binary(&ExecuteMsg::IbcContractHop { channel, commands }).unwrap(),
                     funds: info.funds.clone(),
                 };
                 SubMsg::reply_on_success(msg, 1)
@@ -309,10 +313,10 @@ pub fn hop_reply(deps: DepsMut, env: Env, msg: SubMsgResult) -> Result<Response,
                 };
                 SubMsg::reply_on_success(msg, 1)
             }
-            ExecuteMsg::Increment { channel } => {
+            ExecuteMsg::IbcContractHop { channel, commands } => {
                 let msg = WasmMsg::Execute {
                     contract_addr: contract_addr.clone(),
-                    msg: to_binary(&ExecuteMsg::Increment { channel }).unwrap(),
+                    msg: to_binary(&ExecuteMsg::IbcContractHop { channel, commands }).unwrap(),
                     funds: funds.clone(),
                 };
                 SubMsg::reply_on_success(msg, 1)
