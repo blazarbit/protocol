@@ -21,6 +21,30 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "ibc_transfer"
+      ],
+      "properties": {
+        "ibc_transfer": {
+          "type": "object",
+          "required": [
+            "address",
+            "channel_id"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            },
+            "channel_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

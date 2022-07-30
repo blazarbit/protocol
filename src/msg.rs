@@ -10,5 +10,9 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     Transfer {
         address: String,
+    },
+    IbcTransfer {
+        channel_id: String,
+        address: String,
     }
 }
