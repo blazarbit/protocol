@@ -32,4 +32,11 @@ pub enum ExecuteMsg {
         contract_addr: String,
         commands: Vec<ExecuteMsg>,
     },
+    Increment { channel: String },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum IbcExecuteMsg {
+    Increment {},
 }

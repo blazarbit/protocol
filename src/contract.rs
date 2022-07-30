@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg, SubMsgResult, WasmMsg, Coin, Uint128, Reply};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg, SubMsgResult, WasmMsg, Coin, Uint128, Reply, IbcTimeout};
 use cosmwasm_std::OverflowOperation::Sub;
 use cw2::set_contract_version;
 use cw_osmo_proto::osmosis::gamm::v1beta1::{ MsgSwapExactAmountIn, SwapAmountInRoute as Osmo_SwapAmountInRoute };
@@ -13,7 +13,7 @@ use cw721_base::{
 };
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::msg::{ExecuteMsg, IbcExecuteMsg, InstantiateMsg};
 use crate::state::{COMMANDS_STACK, CONTRACT_ADDRESS};
 
 // version info for migration info
@@ -48,6 +48,14 @@ pub fn execute(
         ExecuteMsg::Swap { pool_id, token_out_denom, token_out_min_amount } => execute_swap(_env.contract.address.into(), info, pool_id, token_out_denom, token_out_min_amount),
         ExecuteMsg::PurchaseNFT { owner, contract_addr, token_id, token_uri } => purchaseNft(deps, _env, info, contract_addr, token_id, token_uri, owner),
         ExecuteMsg::ContractHop { contract_addr, commands } => contract_hop(deps, info, contract_addr, commands),
+        ExecuteMsg::Increment { channel } => Ok(Response::new()
+            .add_attribute("method", "execute_increment")
+            .add_attribute("channel", channel.clone())
+            .add_message(IbcMsg::SendPacket {
+                channel_id: channel,
+                data: to_binary(&IbcExecuteMsg::Increment {})?,
+                timeout: IbcTimeout::with_timestamp(_env.block.time.plus_seconds(300)),
+            })),
     }
 }
 
@@ -216,6 +224,14 @@ fn contract_hop(deps: DepsMut, info: MessageInfo, contract_addr: String, mut com
                 };
                 SubMsg::reply_on_success(msg, 1)
             }
+            ExecuteMsg::Increment { channel } => {
+                let msg = WasmMsg::Execute {
+                    contract_addr: contract_addr.clone(),
+                    msg: to_binary(&ExecuteMsg::Increment { channel }).unwrap(),
+                    funds: info.funds.clone(),
+                };
+                SubMsg::reply_on_success(msg, 1)
+            }
         };
         vec![msg]
     } else { vec![] };
@@ -289,6 +305,14 @@ pub fn hop_reply(deps: DepsMut, env: Env, msg: SubMsgResult) -> Result<Response,
                 let msg = WasmMsg::Execute {
                     contract_addr: contract_addr.clone(),
                     msg: to_binary(&ExecuteMsg::ContractHop { contract_addr, commands }).unwrap(),
+                    funds: funds.clone(),
+                };
+                SubMsg::reply_on_success(msg, 1)
+            }
+            ExecuteMsg::Increment { channel } => {
+                let msg = WasmMsg::Execute {
+                    contract_addr: contract_addr.clone(),
+                    msg: to_binary(&ExecuteMsg::Increment { channel }).unwrap(),
                     funds: funds.clone(),
                 };
                 SubMsg::reply_on_success(msg, 1)
