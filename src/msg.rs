@@ -27,5 +27,9 @@ pub enum ExecuteMsg {
         contract_addr: String,
         token_id: String,
         token_uri: String,
-    }
+    },
+    ContractHop {
+        contract_addr: String,
+        commands: Vec<ExecuteMsg>,
+    },
 }

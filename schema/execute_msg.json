@@ -107,6 +107,172 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "contract_hop"
+      ],
+      "properties": {
+        "contract_hop": {
+          "type": "object",
+          "required": [
+            "commands",
+            "contract_addr"
+          ],
+          "properties": {
+            "commands": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ExecuteMsg"
+              }
+            },
+            "contract_addr": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "ExecuteMsg": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "transfer"
+          ],
+          "properties": {
+            "transfer": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "ibc_transfer"
+          ],
+          "properties": {
+            "ibc_transfer": {
+              "type": "object",
+              "required": [
+                "address",
+                "channel_id"
+              ],
+              "properties": {
+                "address": {
+                  "type": "string"
+                },
+                "channel_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "swap"
+          ],
+          "properties": {
+            "swap": {
+              "type": "object",
+              "required": [
+                "pool_id",
+                "token_out_denom",
+                "token_out_min_amount"
+              ],
+              "properties": {
+                "pool_id": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                },
+                "token_out_denom": {
+                  "type": "string"
+                },
+                "token_out_min_amount": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "purchase_n_f_t"
+          ],
+          "properties": {
+            "purchase_n_f_t": {
+              "type": "object",
+              "required": [
+                "contract_addr",
+                "owner",
+                "token_id",
+                "token_uri"
+              ],
+              "properties": {
+                "contract_addr": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "token_id": {
+                  "type": "string"
+                },
+                "token_uri": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "contract_hop"
+          ],
+          "properties": {
+            "contract_hop": {
+              "type": "object",
+              "required": [
+                "commands",
+                "contract_addr"
+              ],
+              "properties": {
+                "commands": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ExecuteMsg"
+                  }
+                },
+                "contract_addr": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }
