@@ -1,14 +1,12 @@
-use std::convert::TryInto;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg, SubMsgResult, WasmMsg, Coin, Uint128, Reply, IbcTimeout};
-use cosmwasm_std::OverflowOperation::Sub;
+use cosmwasm_std::{to_binary, DepsMut, Env, MessageInfo, Response, BankMsg, StdError, IbcMsg, SubMsg, SubMsgResult, WasmMsg, Reply, IbcTimeout};
 use cw2::set_contract_version;
 use cw_osmo_proto::osmosis::gamm::v1beta1::{ MsgSwapExactAmountIn, SwapAmountInRoute as Osmo_SwapAmountInRoute };
 use cw_osmo_proto::cosmos::base::v1beta1::{ Coin as Osmo_Coin };
 use cw_osmo_proto::proto_ext::MessageExt;
 use cw721_base::{
-    msg::ExecuteMsg as Cw721ExecuteMsg, msg::InstantiateMsg as Cw721InstantiateMsg, Extension,
+    msg::ExecuteMsg as Cw721ExecuteMsg, Extension,
     MintMsg,
 };
 
@@ -26,8 +24,8 @@ pub const PACKET_LIFETIME: u64 = 60 * 60;
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
+    _info: MessageInfo,
+    _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
@@ -46,7 +44,7 @@ pub fn execute(
         ExecuteMsg::Transfer { address } => execute_transfer(deps, info, address),
         ExecuteMsg::IbcTransfer { channel_id, address } => execute_ibc_transfer(deps, _env, info, channel_id, address),
         ExecuteMsg::Swap { pool_id, token_out_denom, token_out_min_amount } => execute_swap(_env.contract.address.into(), info, pool_id, token_out_denom, token_out_min_amount),
-        ExecuteMsg::PurchaseNFT { owner, contract_addr, token_id, token_uri } => purchaseNft(deps, _env, info, contract_addr, token_id, token_uri, owner),
+        ExecuteMsg::PurchaseNFT { owner, contract_addr, token_id, token_uri } => purchase_nft(deps, _env, info, contract_addr, token_id, token_uri, owner),
         ExecuteMsg::ContractHop { contract_addr, commands } => contract_hop(deps, info, contract_addr, commands),
         ExecuteMsg::IbcContractHop { channel, commands } => execute_ibc_contract_hop(_env, channel, commands),
     }
@@ -81,7 +79,7 @@ pub fn execute_transfer(deps: DepsMut, info: MessageInfo, addr: String) -> Resul
     )
 }
 
-pub fn execute_ibc_transfer(deps: DepsMut, env: Env, mut info: MessageInfo, channel_id: String, addr: String) -> Result<Response, ContractError> {
+pub fn execute_ibc_transfer(_deps: DepsMut, env: Env, mut info: MessageInfo, channel_id: String, addr: String) -> Result<Response, ContractError> {
     // require some funds
     let amount = match info.funds.pop() {
         Some(coin) => coin,
@@ -133,7 +131,7 @@ pub fn execute_swap(self_address: String, info: MessageInfo, pool_id: u64, token
 
 // todo: Purchase logic implemented via nft mint just for HackAtom explanation,
 //  need to change it to the real NFT purchase on market
-pub fn purchaseNft(deps: DepsMut, env: Env, info: MessageInfo, contract_addr: String, token_id: String, token_uri: String, owner: String) -> Result<Response, ContractError> {
+pub fn purchase_nft(_deps: DepsMut, _env: Env, info: MessageInfo, contract_addr: String, token_id: String, token_uri: String, owner: String) -> Result<Response, ContractError> {
     let mint_msg = Cw721ExecuteMsg::Mint(MintMsg::<Extension> {
         token_id: token_id.to_string(),
         owner: owner.clone(),
@@ -152,7 +150,7 @@ pub fn purchaseNft(deps: DepsMut, env: Env, info: MessageInfo, contract_addr: St
         .add_attribute("action", "purchaseNft"))
 }
 
-fn contract_hop(deps: DepsMut, info: MessageInfo, contract_addr: String, mut commands: Vec<ExecuteMsg>) -> Result<Response, ContractError> {
+pub fn contract_hop(deps: DepsMut, info: MessageInfo, contract_addr: String, mut commands: Vec<ExecuteMsg>) -> Result<Response, ContractError> {
     match deps.api.addr_validate(contract_addr.as_str()).ok() {
         None => return Err(ContractError::Unauthorized {}),
         Some(addr) => CONTRACT_ADDRESS.save(deps.storage, &addr)?,
@@ -247,6 +245,8 @@ fn contract_hop(deps: DepsMut, info: MessageInfo, contract_addr: String, mut com
         .add_submessages(msgs))
 }
 
+// I don't know, can I delete this reply or not that's wy allow dead_code
+#[allow(dead_code)]
 #[entry_point]
 fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id { 1 => {

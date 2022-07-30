@@ -1,6 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{from_binary, DepsMut, Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcOrder, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse, StdResult, WasmMsg, to_binary};
+use cosmwasm_std::{from_binary, DepsMut, Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg,
+                   IbcChannelConnectMsg, IbcChannelOpenMsg, IbcOrder, IbcPacketAckMsg,
+                   IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse, WasmMsg, to_binary};
 
 use crate::{
     ack::{make_ack_fail, make_ack_success},
@@ -9,6 +11,7 @@ use crate::{
     state::CONNECTION_COUNTS,
     ContractError,
 };
+// use crate::contract::contract_hop;
 use crate::msg::ExecuteMsg;
 
 pub const IBC_VERSION: &str = "blazarbit-1";
@@ -42,16 +45,12 @@ pub fn ibc_channel_connect(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn ibc_channel_close(
-    deps: DepsMut,
+    _deps: DepsMut,
     _env: Env,
-    msg: IbcChannelCloseMsg,
+    _msg: IbcChannelCloseMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
-    // let channel = msg.channel().endpoint.channel_id.clone();
-    // Reset the state for the channel.
-    // CONNECTION_COUNTS.remove(deps.storage, channel.clone());
     Ok(IbcBasicResponse::new()
         .add_attribute("method", "ibc_channel_close")
-        // .add_attribute("channel", channel)
     )
 }
 
@@ -81,15 +80,18 @@ pub fn do_ibc_packet_receive(
     // The channel this packet is being relayed along on this chain.
     let msg: IbcExecuteMsg = from_binary(&msg.packet.data)?;
     match msg {
-        IbcExecuteMsg::IbcContractHop { commands } => execute_ibc_contract_hop(deps, env.contract.address.into(), commands),
+        IbcExecuteMsg::IbcContractHop { commands } => receive_ibc_contract_hop(deps, env.contract.address.into(), commands),
     }
 }
 
-pub fn execute_ibc_contract_hop(
+pub fn receive_ibc_contract_hop(
     deps: DepsMut,
+    // info: MessageInfo,
     self_address: String,
     commands: Vec<ExecuteMsg>,
 ) -> Result<IbcReceiveResponse, ContractError> {
+    // contract_hop(deps, info, self_address, commands)?;
+    // Ok(IbcReceiveResponse::new())
     let msg = WasmMsg::Execute {
         contract_addr: self_address.clone(),
         msg: to_binary(&ExecuteMsg::ContractHop { contract_addr: self_address.clone(), commands }).unwrap(),

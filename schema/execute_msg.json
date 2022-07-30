@@ -138,17 +138,24 @@
     {
       "type": "object",
       "required": [
-        "increment"
+        "ibc_contract_hop"
       ],
       "properties": {
-        "increment": {
+        "ibc_contract_hop": {
           "type": "object",
           "required": [
-            "channel"
+            "channel",
+            "commands"
           ],
           "properties": {
             "channel": {
               "type": "string"
+            },
+            "commands": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ExecuteMsg"
+              }
             }
           }
         }
@@ -295,17 +302,24 @@
         {
           "type": "object",
           "required": [
-            "increment"
+            "ibc_contract_hop"
           ],
           "properties": {
-            "increment": {
+            "ibc_contract_hop": {
               "type": "object",
               "required": [
-                "channel"
+                "channel",
+                "commands"
               ],
               "properties": {
                 "channel": {
                   "type": "string"
+                },
+                "commands": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ExecuteMsg"
+                  }
                 }
               }
             }
