@@ -14,5 +14,10 @@ pub enum ExecuteMsg {
     IbcTransfer {
         channel_id: String,
         address: String,
+    },
+    Swap {
+        pool_id: u64,
+        token_out_denom: String,
+        token_out_min_amount: String,
     }
 }

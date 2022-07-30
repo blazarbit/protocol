@@ -1,7 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg};
 use cw2::set_contract_version;
+use cw_osmo_proto::osmosis::gamm::v1beta1::{ MsgSwapExactAmountIn, SwapAmountInRoute as Osmo_SwapAmountInRoute };
+use cw_osmo_proto::cosmos::base::v1beta1::{ Coin as Osmo_Coin };
+use cw_osmo_proto::proto_ext::MessageExt;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
@@ -35,6 +38,7 @@ pub fn execute(
     match msg {
         ExecuteMsg::Transfer { address } => execute_transfer(deps, info, address),
         ExecuteMsg::IbcTransfer { channel_id, address } => execute_ibc_transfer(deps, _env, info, channel_id, address),
+        ExecuteMsg::Swap { pool_id, token_out_denom, token_out_min_amount } => execute_swap(_env.contract.address.into(), info, pool_id, token_out_denom, token_out_min_amount),
     }
 }
 
@@ -77,4 +81,32 @@ pub fn execute_ibc_transfer(deps: DepsMut, env: Env, mut info: MessageInfo, chan
     Ok(Response::new()
         .add_message(msg)
         .add_attribute("action", "execute_ibc_transfer"))
+}
+
+pub fn execute_swap(self_address: String, info: MessageInfo, pool_id: u64, token_out_denom: String, token_out_min_amount: String) -> Result<Response, ContractError> {
+    let funds = info.funds.clone().pop().unwrap();
+    let coin = Osmo_Coin {
+        denom: funds.denom,
+        amount: funds.amount.to_string()
+    };
+
+    let mut osmo_routes: Vec<Osmo_SwapAmountInRoute> = Vec::new();
+    osmo_routes.push(Osmo_SwapAmountInRoute {
+        pool_id,
+        token_out_denom
+    });
+
+    let msg = MsgSwapExactAmountIn {
+        sender: self_address,
+        routes: osmo_routes,
+        token_in: Option::from(coin),
+        token_out_min_amount,
+    };
+
+    let msg = msg.to_msg()?;
+    let submsg = SubMsg::new(msg);
+
+    Ok(Response::new()
+        .add_attribute("method", "execute_swap")
+        .add_submessage(submsg))
 }

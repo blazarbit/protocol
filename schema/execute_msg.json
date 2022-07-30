@@ -45,6 +45,36 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "swap"
+      ],
+      "properties": {
+        "swap": {
+          "type": "object",
+          "required": [
+            "pool_id",
+            "token_out_denom",
+            "token_out_min_amount"
+          ],
+          "properties": {
+            "pool_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "token_out_denom": {
+              "type": "string"
+            },
+            "token_out_min_amount": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
