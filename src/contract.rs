@@ -1,10 +1,14 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, BankMsg, StdError, IbcMsg, SubMsg, WasmMsg};
 use cw2::set_contract_version;
 use cw_osmo_proto::osmosis::gamm::v1beta1::{ MsgSwapExactAmountIn, SwapAmountInRoute as Osmo_SwapAmountInRoute };
 use cw_osmo_proto::cosmos::base::v1beta1::{ Coin as Osmo_Coin };
 use cw_osmo_proto::proto_ext::MessageExt;
+use cw721_base::{
+    msg::ExecuteMsg as Cw721ExecuteMsg, msg::InstantiateMsg as Cw721InstantiateMsg, Extension,
+    MintMsg,
+};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
@@ -39,6 +43,7 @@ pub fn execute(
         ExecuteMsg::Transfer { address } => execute_transfer(deps, info, address),
         ExecuteMsg::IbcTransfer { channel_id, address } => execute_ibc_transfer(deps, _env, info, channel_id, address),
         ExecuteMsg::Swap { pool_id, token_out_denom, token_out_min_amount } => execute_swap(_env.contract.address.into(), info, pool_id, token_out_denom, token_out_min_amount),
+        ExecuteMsg::PurchaseNFT { owner, contract_addr, token_id, token_uri } => purchaseNft(deps, _env, info, contract_addr, token_id, token_uri, owner),
     }
 }
 
@@ -109,4 +114,25 @@ pub fn execute_swap(self_address: String, info: MessageInfo, pool_id: u64, token
     Ok(Response::new()
         .add_attribute("method", "execute_swap")
         .add_submessage(submsg))
+}
+
+// todo: Purchase logic implemented via nft mint just for HackAtom explanation,
+//  need to change it to the real NFT purchase on market
+pub fn purchaseNft(deps: DepsMut, env: Env, info: MessageInfo, contract_addr: String, token_id: String, token_uri: String, owner: String) -> Result<Response, ContractError> {
+    let mint_msg = Cw721ExecuteMsg::Mint(MintMsg::<Extension> {
+        token_id: token_id.to_string(),
+        owner: owner.clone(),
+        token_uri: token_uri.clone().into(),
+        extension: Option::None
+    });
+
+    let msg = WasmMsg::Execute {
+        contract_addr: contract_addr.clone(),
+        msg: to_binary(&mint_msg)?,
+        funds: info.funds.clone(),
+    };
+
+    Ok(Response::new()
+        .add_message(msg)
+        .add_attribute("action", "purchaseNft"))
 }

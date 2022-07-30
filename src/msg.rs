@@ -19,5 +19,13 @@ pub enum ExecuteMsg {
         pool_id: u64,
         token_out_denom: String,
         token_out_min_amount: String,
+    },
+    // todo: Purchase via nft mint just for HackAtom explanation,
+    //  need to change it to real NFT purchase on market
+    PurchaseNFT {
+        owner: String,
+        contract_addr: String,
+        token_id: String,
+        token_uri: String,
     }
 }

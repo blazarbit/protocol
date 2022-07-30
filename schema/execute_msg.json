@@ -75,6 +75,38 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "purchase_n_f_t"
+      ],
+      "properties": {
+        "purchase_n_f_t": {
+          "type": "object",
+          "required": [
+            "contract_addr",
+            "owner",
+            "token_id",
+            "token_uri"
+          ],
+          "properties": {
+            "contract_addr": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "token_id": {
+              "type": "string"
+            },
+            "token_uri": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
